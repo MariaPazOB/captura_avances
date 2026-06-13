@@ -328,6 +328,11 @@ function _mat_toolbarMovilHTML() {
 function _mat_ocultarFlotante() {
   const flotante = document.getElementById('mat-flotante');
   if (flotante) flotante.style.display = 'none';
+  _mat_limpiarSeleccion();
+}
+
+function _mat_limpiarSeleccion() {
+  _sel.forEach(td => td.classList.remove('seleccionada'));
   _sel.clear();
 }
 
@@ -389,8 +394,8 @@ function _mat_tablaResumen() {
   const cND = 'style="text-align:center;color:#000;border-right:2px solid #333"';
 
   const filaPorFase = ({ fase, c, prom }) => `
-    <tr>
-      <td class="celda-fase-label" style="background:${c.enc};color:#000">${NOMBRES_FASES[fase]}</td>
+    <tr class="fila-fase-link" data-fase="${fase}" style="cursor:pointer" title="Ver detalle de fase">
+      <td class="celda-fase-label" style="background:${c.enc};color:#000">${NOMBRES_FASES[fase]} <span style="opacity:.6;font-size:.85em">→</span></td>
       <td class="num" ${cN}>${totalPisos}</td>
       <td class="num" ${cND}>${totalDeptos}</td>
       <td class="num" ${cN}>${prom.avance !== null ? interfaz_fmtPct(prom.avance) : '—'}</td>
@@ -794,7 +799,7 @@ function _mat_registrarEventosCeldas() {
         return;
       }
       // Click simple (mouse real) → mostrar burbuja
-      _sel.clear();
+      _mat_limpiarSeleccion();
       _ancla = td;
       _sel.add(td);
       _mat_mostrarSelectorFlotante(_sel);
@@ -808,7 +813,7 @@ function _mat_registrarEventosCeldas() {
     td.addEventListener('mousedown', e => {
       if (e.button !== 0) return;
       _arrastrando = true;
-      _sel.clear();
+      _mat_limpiarSeleccion();
       _ancla = td;
       _sel.add(td);
     });
@@ -827,7 +832,7 @@ function _mat_registrarEventosCeldas() {
       e.preventDefault();
       _ultimoFueToque = true; // bloquear el click sintético posterior
       _arrastrando = true;
-      _sel.clear();
+      _mat_limpiarSeleccion();
       _ancla = td;
       _sel.add(td);
       td.classList.add('seleccionada');
@@ -1258,6 +1263,22 @@ function _mat_registrarEventos() {
   const _matContenido = document.getElementById('mat-contenido');
   if (_matContenido) {
     _matContenido.addEventListener('click', function(e) {
+      // ── Clic en fila de fase del Resumen → ir a esa fase ──────────────────
+      const filaFase = e.target.closest('.fila-fase-link');
+      if (filaFase) {
+        const fase = parseInt(filaFase.dataset.fase);
+        if (!isNaN(fase)) {
+          _mat_tabActiva = 'fase_' + fase;
+          document.querySelectorAll('.sidebar-tab').forEach(b =>
+            b.classList.toggle('activo', b.dataset.tab === _mat_tabActiva));
+          const area = document.getElementById('mat-area-contenido');
+          if (area) { area.scrollLeft = 0; area.scrollTop = 0; }
+          _mat_renderContenido();
+          _mat_actualizarToolbar();
+        }
+        return;
+      }
+
       // 🔍 Filtro actividades por fase
       const btnFiltroAct = e.target.closest('.btn-fase-filtro-act');
       if (btnFiltroAct) {
