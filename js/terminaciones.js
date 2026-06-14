@@ -827,13 +827,6 @@ function _mat_registrarEventosCeldas() {
     });
 
     td.addEventListener('touchstart', e => {
-      if (e.touches.length >= 2) {
-        // Dos dedos → cancelar selección y dejar que el navegador scrollee
-        _arrastrando = false;
-        _mat_limpiarSeleccion();
-        _mat_ocultarFlotante();
-        return;
-      }
       e.preventDefault();
       _ultimoFueToque = true;
       _arrastrando = true;
@@ -844,7 +837,6 @@ function _mat_registrarEventosCeldas() {
     }, { passive: false });
 
     td.addEventListener('touchmove', e => {
-      if (e.touches.length >= 2) return; // dos dedos → scroll nativo
       e.preventDefault();
       const t = e.touches[0];
       _ptrClientX = t.clientX;
