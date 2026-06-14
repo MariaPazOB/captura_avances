@@ -827,18 +827,36 @@ function _mat_registrarEventosCeldas() {
     });
 
     td.addEventListener('touchstart', e => {
-      // Las celdas capturan el toque completamente (igual que un click de mouse).
-      // Para scrollear, usar la columna de actividades o los encabezados.
-      e.preventDefault();
-      _ultimoFueToque = true; // bloquear el click sintético posterior
-      _arrastrando = true;
-      _mat_limpiarSeleccion();
-      _ancla = td;
-      _sel.add(td);
-      td.classList.add('seleccionada');
-    }, { passive: false });
+      _ultimoFueToque = true;
+      _touchStartX = e.touches[0].clientX;
+      _touchStartY = e.touches[0].clientY;
+      _touchModoArrastre = false;
+
+      // Timer de press largo (350ms) → activa selección de rango
+      clearTimeout(_touchTimer);
+      _touchTimer = setTimeout(() => {
+        _touchModoArrastre = true;
+        _arrastrando = true;
+        _mat_limpiarSeleccion();
+        _ancla = td;
+        _sel.add(td);
+        td.classList.add('seleccionada');
+        if (navigator.vibrate) navigator.vibrate(30); // vibración corta de aviso
+      }, 350);
+      // Sin preventDefault → el dedo puede scrollear normalmente
+    }, { passive: true });
 
     td.addEventListener('touchmove', e => {
+      const dx = Math.abs(e.touches[0].clientX - _touchStartX);
+      const dy = Math.abs(e.touches[0].clientY - _touchStartY);
+
+      if (!_touchModoArrastre) {
+        // Si el dedo se movió antes del press largo → es scroll, cancela el timer
+        if (dx > 8 || dy > 8) { clearTimeout(_touchTimer); _touchTimer = null; }
+        return; // deja que el navegador scrollee
+      }
+
+      // Modo arrastre activo → bloquear scroll y seleccionar rango
       e.preventDefault();
       const t = e.touches[0];
       _ptrClientX = t.clientX;
@@ -850,10 +868,23 @@ function _mat_registrarEventosCeldas() {
     }, { passive: false });
 
     td.addEventListener('touchend', () => {
+      clearTimeout(_touchTimer);
       _mat_detenerAutoScroll();
-      // Siempre mostrar burbuja: celda única o selección múltiple
-      _mat_mostrarSelectorFlotante(_sel);
+
+      if (_touchModoArrastre) {
+        // Fin de arrastre → mostrar burbuja con el rango seleccionado
+        _mat_mostrarSelectorFlotante(_sel);
+      } else {
+        // Tap corto → seleccionar sola esa celda y mostrar burbuja
+        _mat_limpiarSeleccion();
+        _ancla = td;
+        _sel.add(td);
+        td.classList.add('seleccionada');
+        _mat_mostrarSelectorFlotante(_sel);
+      }
+
       _arrastrando = false;
+      _touchModoArrastre = false;
     });
   });
 
