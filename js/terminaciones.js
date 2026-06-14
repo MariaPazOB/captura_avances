@@ -1068,8 +1068,7 @@ function _mat_mostrarSelectorFlotante(sel) {
     });
   });
   flotante.querySelector('.btn-cerrar-flotante')?.addEventListener('click', () => {
-    sel.clear();
-    flotante.style.display = 'none';
+    _mat_ocultarFlotante();
   });
 }
 
