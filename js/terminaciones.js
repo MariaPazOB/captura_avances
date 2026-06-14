@@ -1826,12 +1826,18 @@ function _mat_exportarJSONSilencioso() {
     var matrices = datos_cargarMatrices(_mat_id);
     var payload  = { version: 'coa-v1', exportado: new Date().toISOString(), proyecto: config, matrices: matrices };
     var nombre   = (config && config.nombre ? config.nombre : 'proyecto').replace(/\s+/g, '_');
-    var fecha    = new Date().toISOString().slice(0, 10);
+    var now      = new Date();
+    var yy       = String(now.getFullYear()).slice(2);
+    var mm       = String(now.getMonth() + 1).padStart(2, '0');
+    var dd       = String(now.getDate()).padStart(2, '0');
+    var hh       = String(now.getHours()).padStart(2, '0');
+    var min      = String(now.getMinutes()).padStart(2, '0');
+    var nombreArchivo = yy + mm + dd + '_' + nombre + '_' + hh + '-' + min + '.json';
     var blob     = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     var url      = URL.createObjectURL(blob);
     var a        = document.createElement('a');
     a.href       = url;
-    a.download   = 'coa_' + nombre + '_' + fecha + '.json';
+    a.download   = nombreArchivo;
     a.click();
     URL.revokeObjectURL(url);
   } catch(e) {
