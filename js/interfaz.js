@@ -94,6 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
           'Avances sin guardar',
           '¿Salir de la aplicación? Tienes avances sin guardar en este dispositivo.',
           function() {
+            window._coa_guardadoPendiente = false;
             _ignorarPopstates = 1;
             history.back(); // deshace el re-push → Android cierra
           }

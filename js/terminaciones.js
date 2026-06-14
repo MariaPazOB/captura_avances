@@ -83,7 +83,15 @@ function terminaciones_inicializar(idProyecto) {
   _mat_id       = idProyecto;
   _mat_config   = datos_cargarProyecto(idProyecto);
   if (!_mat_config) return;
-  _mat_datos    = datos_cargarMatrices(idProyecto);
+
+  // Si hay avances sin guardar de una sesión anterior, mostrar el estado oficial
+  // por defecto y preguntar si el usuario quiere recuperar el borrador.
+  const hayPendiente    = datos_hayPendiente(idProyecto);
+  const esPrimerAviso   = !_mat_pendienteConsultado.has(idProyecto);
+  _mat_datos = (hayPendiente && esPrimerAviso)
+    ? datos_cargarMatricesOk(idProyecto)   // estado oficial mientras se decide
+    : datos_cargarMatrices(idProyecto);    // estado normal
+
   _mat_baseline = {};
   _mat_deptos   = logica_listaDeptosPlana(_mat_config.departamentos || []);
   _mat_fasesActivas = logica_fasesEfectivas(_mat_config);
@@ -119,18 +127,37 @@ function terminaciones_inicializar(idProyecto) {
   }
   _mat_render();
 
-  // Verificar pendiente de sesión anterior (solo una vez por proyecto por sesión)
-  if (datos_hayPendiente(idProyecto) && !_mat_pendienteConsultado.has(idProyecto)) {
+  // Si hay avances sin guardar de sesión anterior, preguntar si recuperar.
+  // La vista ya muestra el estado oficial (último guardado). Si el usuario acepta,
+  // se cargan los avances del borrador y se re-renderiza.
+  if (hayPendiente && esPrimerAviso) {
     _mat_pendienteConsultado.add(idProyecto);
+
+    // Formatear fecha y hora del borrador para que el usuario pueda reconocerlo
+    const ts = datos_getFechaPendiente(idProyecto);
+    let fechaTexto = '';
+    if (ts) {
+      const d = new Date(ts);
+      const dias  = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+      const meses = ['enero','febrero','marzo','abril','mayo','junio',
+                     'julio','agosto','septiembre','octubre','noviembre','diciembre'];
+      const hora  = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+      fechaTexto  = ` del ${dias[d.getDay()]} ${d.getDate()} de ${meses[d.getMonth()]} a las ${hora}`;
+    }
+
     interfaz_mostrarModal(
       'Avances sin guardar',
-      'Tenías avances sin guardar de una sesión anterior. ¿Deseas recuperarlos?',
+      `La última vez no guardaste. Tienes avances${fechaTexto} guardados solo en este dispositivo. ¿Quieres recuperarlos?`,
       () => {
+        // Sí: cargar el borrador y re-renderizar
+        _mat_datos = datos_cargarMatrices(idProyecto);
         window._coa_guardadoPendiente = true;
+        _mat_render();
         interfaz_mostrarToast('Avances recuperados. Recuerda guardarlos cuando termines.', 'info', 4000);
       },
       () => {
-        datos_limpiarPendiente(idProyecto);
+        // No: descartar borrador (ya se ve el estado oficial, no hay que re-renderizar)
+        datos_descartarPendiente(idProyecto);
         interfaz_mostrarToast('Avances descartados.', 'info');
       }
     );

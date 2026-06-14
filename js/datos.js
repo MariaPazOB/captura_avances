@@ -42,6 +42,8 @@ function datos_cargarProyecto(id) {
 function _datos_eliminarLocal(id) {
   localStorage.removeItem(_PRE + 'proyecto_' + id);
   localStorage.removeItem(_PRE + 'matrices_' + id);
+  localStorage.removeItem(_PRE + 'matrices_ok_' + id);
+  localStorage.removeItem(_PRE + 'pendiente_ts_' + id);
   localStorage.removeItem(_PRE + 'baseline_' + id);
   localStorage.removeItem(_PRE + 'hist_og_' + id);
   localStorage.removeItem(_PRE + 'hist_term_' + id);
@@ -92,9 +94,12 @@ function datos_proyectosConPendiente() {
 
 // Sube el proyecto a Firebase de forma explícita (llamado solo al confirmar guardado)
 function datos_subirAhora(idProyecto) {
+  // Guardar snapshot del estado oficial antes de subir
+  datos_guardarMatricesOk(idProyecto);
   _fs_setEstado('sincronizando');
   _fs_subirProyecto(idProyecto);
   datos_limpiarPendiente(idProyecto);
+  localStorage.removeItem(_PRE + 'pendiente_ts_' + idProyecto);
 }
 
 // ── Matrices de terminaciones (estado actual) ────────────────────────────────
@@ -103,12 +108,44 @@ function datos_guardarMatrices(idProyecto, matrices) {
   // Solo guarda en local — NO sube a Firebase automáticamente.
   // El usuario debe presionar "Guardar avances" para sincronizar.
   localStorage.setItem(_PRE + 'matrices_' + idProyecto, JSON.stringify(matrices));
+  // Guardar timestamp de la última vez que hubo cambios sin guardar
+  if (!localStorage.getItem(_PRE + 'pendiente_ts_' + idProyecto)) {
+    localStorage.setItem(_PRE + 'pendiente_ts_' + idProyecto, new Date().toISOString());
+  }
   datos_marcarPendiente(idProyecto);
 }
 
 function datos_cargarMatrices(idProyecto) {
   const raw = localStorage.getItem(_PRE + 'matrices_' + idProyecto);
   return raw ? JSON.parse(raw) : {};
+}
+
+// ── Matrices oficiales (último guardado confirmado) ───────────────────────────
+// Se actualiza cada vez que el usuario presiona "Guardar avances".
+// Se usa para restaurar el estado cuando el usuario descarta cambios sin guardar.
+
+function datos_guardarMatricesOk(idProyecto) {
+  const matrices = datos_cargarMatrices(idProyecto);
+  localStorage.setItem(_PRE + 'matrices_ok_' + idProyecto, JSON.stringify(matrices));
+}
+
+function datos_cargarMatricesOk(idProyecto) {
+  const raw = localStorage.getItem(_PRE + 'matrices_ok_' + idProyecto);
+  return raw ? JSON.parse(raw) : {};
+}
+
+// Devuelve la fecha/hora en que se hicieron cambios sin guardar (ISO 8601), o null si no hay.
+function datos_getFechaPendiente(idProyecto) {
+  return localStorage.getItem(_PRE + 'pendiente_ts_' + idProyecto) || null;
+}
+
+// Descarta los cambios sin guardar: restaura las matrices al último estado oficial
+// y limpia la marca de pendiente. Se llama al confirmar "salir sin guardar".
+function datos_descartarPendiente(idProyecto) {
+  const ok = datos_cargarMatricesOk(idProyecto);
+  localStorage.setItem(_PRE + 'matrices_' + idProyecto, JSON.stringify(ok));
+  datos_limpiarPendiente(idProyecto);
+  localStorage.removeItem(_PRE + 'pendiente_ts_' + idProyecto);
 }
 
 // ── Control semanal ──────────────────────────────────────────────────────────

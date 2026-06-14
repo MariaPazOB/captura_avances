@@ -15,6 +15,9 @@ function router_ir(vista, opciones = {}) {
         'Avances sin guardar',
         '¿Salir sin guardar los avances?',
         () => {
+          // Descartar cambios locales: restaurar último estado guardado oficialmente
+          if (typeof datos_descartarPendiente === 'function') datos_descartarPendiente(_proyectoActivo);
+          window._coa_guardadoPendiente = false;
           _router_navegar(vista, opciones);
         },
         () => {
