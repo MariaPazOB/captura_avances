@@ -67,47 +67,39 @@ document.addEventListener('DOMContentLoaded', () => {
   window._coa_guardadoPendiente = false; // inicializar
 
   // ── Interceptar botón "atrás" de Android en PWA ──────────────────────────
-  history.pushState({ coa: 'app' }, '');
+  // NO hacemos pushState al inicio. En vez de eso, router.js agrega una
+  // entrada al historial cuando el usuario entra a una sub-vista (proyecto,
+  // config). Así, el primer "atrás" desde el inicio cierra la app de forma
+  // natural, sin necesidad de código extra.
   var _ignorarPopstates = 0;
   window.addEventListener('popstate', function() {
     if (_ignorarPopstates > 0) { _ignorarPopstates--; return; }
 
-    var vistaActual    = typeof router_getVistaActual    === 'function' ? router_getVistaActual()    : null;
-    var proyectoActivo = typeof router_getProyectoActivo === 'function' ? router_getProyectoActivo() : null;
+    var vistaActual = typeof router_getVistaActual === 'function' ? router_getVistaActual() : null;
 
-    if (vistaActual === 'v-proyecto') {
-      // ── Dentro de un proyecto → volver al inicio ──────────────────────
-      // Re-empujamos para quedarnos en la app y manejar la navegación.
-      history.pushState({ coa: 'app' }, '');
-      var hayPendienteProyecto = proyectoActivo &&
-        typeof datos_hayPendiente === 'function' && datos_hayPendiente(proyectoActivo);
-      if (hayPendienteProyecto) {
-        interfaz_mostrarModal(
-          'Avances sin guardar',
-          '¿Salir sin guardar los avances?',
-          function() { router_ir('v-inicio'); }
-        );
-      } else {
-        router_ir('v-inicio');
-      }
+    if (vistaActual === 'v-proyecto' || vistaActual === 'v-config') {
+      // ── Sub-vista → volver al inicio ─────────────────────────────────
+      // router_ir maneja el chequeo de avances pendientes (y su modal).
+      // Si el usuario cancela, router_ir re-empuja la entrada del historial.
+      router_ir('v-inicio');
+
     } else {
-      // ── En el inicio → verificar pendientes antes de salir ────────────
+      // ── En el inicio → verificar pendientes antes de cerrar ───────────
       var hayPendienteGlobal = window._coa_guardadoPendiente ||
         (typeof datos_proyectosConPendiente === 'function' && datos_proyectosConPendiente().length > 0);
       if (hayPendienteGlobal) {
-        // Hay pendientes: re-empujar para quedarnos, mostrar aviso
-        history.pushState({ coa: 'app' }, '');
+        // Re-empujar para quedarnos mientras mostramos el aviso
+        history.pushState({ coa: 'v-inicio' }, '');
         interfaz_mostrarModal(
           'Avances sin guardar',
           '¿Salir de la aplicación? Tienes avances sin guardar en este dispositivo.',
           function() {
-            // Usuario confirmó: deshacer el re-push y dejar que Android cierre
             _ignorarPopstates = 1;
-            history.back();
+            history.back(); // deshace el re-push → Android cierra
           }
         );
       }
-      // Sin pendientes: NO re-empujamos → Android cierra la app naturalmente
+      // Sin pendientes: no hacemos nada → Android cierra la app naturalmente
     }
   });
 
