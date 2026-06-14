@@ -44,6 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
       '¿Confirmas el guardado de los avances? Los datos se sincronizarán con todos los dispositivos.',
       () => {
         datos_subirAhora(id);
+        if (typeof _mat_exportarJSONSilencioso === 'function') _mat_exportarJSONSilencioso(); // respaldo automático silencioso
         window._coa_guardadoPendiente = false;
         const btnToolbar = document.getElementById('mat-btn-guardar-avances');
         if (btnToolbar) btnToolbar.classList.remove('mat-btn-pendiente');

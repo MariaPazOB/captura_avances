@@ -1156,6 +1156,39 @@ button { font-family: inherit; cursor: pointer; border: none; outline: none; }
 .toast-error      { background: var(--peligro); }
 .toast-aviso      { background: var(--advertencia); }
 
+/* ── Burbuja de progreso (exportar planilla) ──────────────── */
+.mat-progreso {
+  position: fixed;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 9998;
+  background: #fff; border: 1px solid #e2e2e2;
+  border-radius: var(--radio); padding: 1.5rem 2rem;
+  box-shadow: 0 8px 32px rgba(0,0,0,.18);
+  min-width: 280px; max-width: 340px; width: 90%;
+  opacity: 1; transition: opacity .3s;
+}
+.mat-progreso.ocultando { opacity: 0; }
+.mat-progreso-titulo {
+  font-size: .8rem; font-weight: 700; color: var(--texto-secundario);
+  text-transform: uppercase; letter-spacing: .04em; margin-bottom: .45rem;
+}
+.mat-progreso-msg {
+  font-size: .88rem; color: var(--texto-primario);
+  margin-bottom: .6rem; min-height: 1.2em;
+}
+.mat-progreso-fondo {
+  height: 6px; background: #e8e8e8; border-radius: 3px; overflow: hidden;
+}
+.mat-progreso-barra {
+  height: 100%; background: var(--primario); border-radius: 3px;
+  width: 0%;
+}
+.mat-progreso-pct {
+  font-size: .78rem; color: var(--texto-secundario);
+  text-align: right; margin-top: .35rem;
+}
+
 /* ── Utilidades ───────────────────────────────────────────── */
 .small { font-size: .82rem; }
 .delta small { font-size: .7rem; }

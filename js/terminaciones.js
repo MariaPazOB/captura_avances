@@ -276,19 +276,21 @@ function _mat_sidebarEscritorioHTML() {
       </button>
       <div class="sidebar-acciones-dropdown" id="sidebar-acciones-dropdown" style="display:none">
         <button class="sidebar-btn-accion-item" id="mat-btn-excel">
-          <span class="sidebar-icono">⬇</span><span class="sidebar-texto">Excel</span>
+          <span class="sidebar-icono">⬇</span><span class="sidebar-texto">Exportar Excel</span>
+        </button>
+        <button class="sidebar-btn-accion-item" id="mat-btn-importar-excel">
+          <span class="sidebar-icono">⬆</span><span class="sidebar-texto">Importar Excel</span>
         </button>
         <button class="sidebar-btn-accion-item" id="mat-btn-cargar">
-          <span class="sidebar-icono">📂</span><span class="sidebar-texto">Cargar respaldo</span>
-        </button>
-        <button class="sidebar-btn-accion-item" id="mat-btn-exportar-json">
-          <span class="sidebar-icono">💾</span><span class="sidebar-texto">Exportar respaldo</span>
+          <span class="sidebar-icono">📂</span><span class="sidebar-texto">Cargar respaldo JSON</span>
         </button>
         <button class="sidebar-btn-accion-item sidebar-btn-peligro" id="mat-btn-resetear">
           <span class="sidebar-icono">↺</span><span class="sidebar-texto">Resetear avances</span>
         </button>
       </div>
-      <input type="file" id="mat-input-cargar" accept=".json" style="display:none">
+      <input type="file" id="mat-input-cargar"          accept=".json" style="display:none">
+      <input type="file" id="mat-input-excel-import"   accept=".xlsx" style="display:none">
+      <input type="file" id="mat-input-planilla-export" accept=".xlsx" style="display:none">
     </div>`;
 }
 
@@ -341,8 +343,7 @@ function _mat_toolbarMovilHTML() {
       <div class="mat-menu-wrap">
         <button class="movil-btn-icono" id="mat-btn-mas" title="Más opciones">•••</button>
         <div class="mat-menu-dropdown" id="mat-menu-dropdown" style="display:none">
-          <button class="mat-menu-item" id="mat-btn-cargar">📂 Cargar respaldo</button>
-          <button class="mat-menu-item" id="mat-btn-exportar-json">💾 Exportar respaldo</button>
+          <button class="mat-menu-item" id="mat-btn-cargar">📂 Cargar respaldo JSON</button>
           <button class="mat-menu-item mat-menu-item-peligro" id="mat-btn-resetear">↺ Resetear avances</button>
         </div>
       </div>
@@ -997,12 +998,30 @@ function _mat_recalcularFilaTermino(faseKey, fase) {
 }
 
 function _mat_recalcularResumen() {
+  // Actualizar % del sidebar siempre, independiente de la pestaña activa
+  _mat_actualizarPctSidebar();
+
   if (_mat_tabActiva !== 'resumen') return;
   // La tabla del Resumen tiene fila Consolidado y muchas columnas calculadas;
   // regenerar el bloque completo es más simple y barato que actualizar celda
   // por celda. Sin estado interactivo, esto no genera flicker perceptible.
   const contenido = document.getElementById('mat-contenido');
   if (contenido) contenido.innerHTML = _mat_tablaResumen();
+}
+
+// Actualiza solo los números % de las pestañas de fase en el sidebar,
+// sin regenerar ni tocar el resto del sidebar.
+function _mat_actualizarPctSidebar() {
+  const deptosTodos = logica_listaDeptosPlana(_mat_config.departamentos || []);
+  const deptosEstr  = _mat_config.departamentos || [];
+  document.querySelectorAll('.sidebar-tab[data-tab^="fase_"]').forEach(function(btn) {
+    const fase = parseInt(btn.dataset.tab.split('_')[1]);
+    if (isNaN(fase)) return;
+    const prom = logica_promediosFase(_mat_config, _mat_datos, _mat_baseline, fase, deptosTodos, deptosEstr);
+    const pct  = Math.round(prom.avance || 0);
+    const span = btn.querySelector('.sidebar-pct');
+    if (span) span.textContent = pct + '%';
+  });
 }
 
 // ── Selector flotante ────────────────────────────────────────────────────────
@@ -1423,6 +1442,7 @@ function _mat_registrarEventos() {
       '¿Confirmas el guardado de los avances? Los datos se sincronizarán con todos los dispositivos.',
       () => {
         datos_subirAhora(_mat_id);
+        _mat_exportarJSONSilencioso(); // respaldo automático silencioso
         window._coa_guardadoPendiente = false;
         // Quitar estilo pendiente del botón
         const btn = document.getElementById('mat-btn-guardar-avances');
@@ -1430,13 +1450,6 @@ function _mat_registrarEventos() {
         interfaz_mostrarToast('Avances guardados correctamente', 'exito');
       }
     );
-  });
-
-  // ── Exportar respaldo JSON ───────────────────────────────────────────────────
-  document.getElementById('mat-btn-exportar-json')?.addEventListener('click', () => {
-    _mat_exportarJSON();
-    const md = document.getElementById('mat-menu-dropdown');
-    if (md) md.style.display = 'none';
   });
 
   // ── Cargar JSON ─────────────────────────────────────────────────────────────
@@ -1459,9 +1472,26 @@ function _mat_registrarEventos() {
     reader.readAsText(file);
   });
 
-  // ── Exportar Excel ──────────────────────────────────────────────────────────
+  // ── Exportar a planilla (actualiza el xlsx original, solo valores) ─────────
   document.getElementById('mat-btn-excel')?.addEventListener('click', () => {
-    _mat_exportarExcel();
+    document.getElementById('mat-input-planilla-export')?.click();
+  });
+  document.getElementById('mat-input-planilla-export')?.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    _mat_exportarPlanilla(file);
+    e.target.value = '';
+  });
+
+  // ── Importar Excel ──────────────────────────────────────────────────────────
+  document.getElementById('mat-btn-importar-excel')?.addEventListener('click', () => {
+    document.getElementById('mat-input-excel-import')?.click();
+  });
+  document.getElementById('mat-input-excel-import')?.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    _mat_importarExcel(file);
+    e.target.value = '';
   });
 }
 
@@ -1788,6 +1818,28 @@ function _mat_aplicarToggleCols() {
 
 // ── Exportar JSON ─────────────────────────────────────────────────────────────
 
+// Versión silenciosa: se llama automáticamente al guardar avances.
+// No muestra toast ni modifica _coa_guardadoPendiente.
+function _mat_exportarJSONSilencioso() {
+  try {
+    var config   = datos_cargarProyecto(_mat_id);
+    var matrices = datos_cargarMatrices(_mat_id);
+    var payload  = { version: 'coa-v1', exportado: new Date().toISOString(), proyecto: config, matrices: matrices };
+    var nombre   = (config && config.nombre ? config.nombre : 'proyecto').replace(/\s+/g, '_');
+    var fecha    = new Date().toISOString().slice(0, 10);
+    var blob     = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    var url      = URL.createObjectURL(blob);
+    var a        = document.createElement('a');
+    a.href       = url;
+    a.download   = 'coa_' + nombre + '_' + fecha + '.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch(e) {
+    // Fallo silencioso: el respaldo automático no debe interrumpir el guardado
+    console.warn('[COA] No se pudo generar respaldo automático:', e.message);
+  }
+}
+
 function _mat_exportarJSON() {
   var config   = datos_cargarProyecto(_mat_id);
   var matrices = datos_cargarMatrices(_mat_id);
@@ -1885,4 +1937,377 @@ function _mat_exportarExcel() {
   var nombre = (config && config.nombre ? config.nombre : 'proyecto').replace(/\s+/g, '_');
   var fecha  = new Date().toISOString().slice(0, 10);
   XLSX.writeFile(wb, 'terminaciones_' + nombre + '_' + fecha + '.xlsx');
+}
+
+// ── Importar Excel (planilla tipo) ────────────────────────────────────────────
+// Lee la hoja "Tabla % Avance por Depto" y vuelca los avances a las matrices.
+// Fila 5 (índice 4): pisos      → columnas 12+ (índice 11+)
+// Fila 6 (índice 5): nº depto   → columnas 12+
+// Filas 8+ (índice 7+): actividades. Col B (índice 1) = código actividad (entero)
+// Valores en Excel: 0, 0.25, 0.5, 0.75, 1  → ×100 en la app
+
+function _mat_importarExcel(file) {
+  if (typeof XLSX === 'undefined') {
+    interfaz_mostrarToast('La librería Excel no está lista. Reintenta en un momento.', 'error');
+    return;
+  }
+
+  var reader = new FileReader();
+  reader.onload = function(ev) {
+    try {
+      var wb = XLSX.read(ev.target.result, { type: 'array' });
+
+      // Buscar la hoja
+      var sheetName = 'Tabla % Avance por Depto';
+      if (!wb.SheetNames.includes(sheetName)) {
+        // Intento case-insensitive
+        var found = wb.SheetNames.find(function(n) {
+          return n.trim().toLowerCase() === sheetName.toLowerCase();
+        });
+        if (!found) {
+          interfaz_mostrarToast('No se encontró la hoja "' + sheetName + '" en el archivo.', 'error');
+          return;
+        }
+        sheetName = found;
+      }
+
+      var ws   = wb.Sheets[sheetName];
+      var data = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+
+      // Fila 6 = índice 5 → pisos; Fila 7 = índice 6 → nº deptos dentro del piso
+      // Columnas con datos de depto empiezan en índice 11
+      var filaPisos  = data[5] || [];
+      var filaDeptos = data[6] || [];
+
+      // Construir mapa colIndex → código depto de la app ("piso*100 + numDepto")
+      // Si el número de depto no es numérico (ej. 'M'), se infiere como el anterior + 1
+      var colADepto = {};
+      var pisoActual = null;
+      var ultimoNumDepto = 0;
+      for (var c = 11; c < filaPisos.length; c++) {
+        if (filaPisos[c] !== null && filaPisos[c] !== undefined && filaPisos[c] !== '') {
+          pisoActual = parseInt(filaPisos[c]);
+          ultimoNumDepto = 0; // reiniciar al cambiar de piso
+        }
+        var numDepto = filaDeptos[c];
+        if (pisoActual !== null && numDepto !== null && numDepto !== undefined && numDepto !== '') {
+          var numParsed = parseInt(numDepto);
+          if (isNaN(numParsed)) numParsed = ultimoNumDepto + 1; // 'M' → correlativo
+          ultimoNumDepto = numParsed;
+          colADepto[c] = String(pisoActual * 100 + numParsed);
+        }
+      }
+
+      // Construir mapa código actividad → faseKey a partir de la config del proyecto
+      // ordenActividades es [{numero, faseEfectiva, posicion}, ...]
+      var actACodigo = {};   // actCode(int) → faseKey
+      (_mat_config.ordenActividades || []).forEach(function(entry) {
+        actACodigo[entry.numero] = 'fase_' + entry.faseEfectiva;
+      });
+
+      // Departamentos válidos de la app
+      var deptosValidos = new Set(logica_listaDeptosPlana(_mat_config.departamentos || []));
+
+      // ── Paso 1: verificar sin importar aún ──────────────────────────────────
+      var actividadesNoEncontradas = [];
+      var deptosNoEncontrados = new Set();
+
+      for (var r = 8; r < data.length; r++) {
+        var fila = data[r];
+        if (!fila) continue;
+        var rawCod = fila[1];
+        if (rawCod === null || rawCod === undefined || rawCod === '') continue;
+        var actCode = parseInt(rawCod);
+        if (isNaN(actCode)) continue;
+
+        if (!actACodigo[actCode]) {
+          actividadesNoEncontradas.push(actCode);
+        }
+
+        Object.keys(colADepto).forEach(function(ci) {
+          var depCod = colADepto[ci];
+          if (!deptosValidos.has(depCod)) deptosNoEncontrados.add(depCod);
+        });
+      }
+
+      // Si hay diferencias → alerta y no importar
+      if (actividadesNoEncontradas.length > 0 || deptosNoEncontrados.size > 0) {
+        var advertencias = [];
+        if (actividadesNoEncontradas.length > 0) {
+          advertencias.push('Actividades del Excel no encontradas en el proyecto: ' +
+            actividadesNoEncontradas.join(', ') + '.');
+        }
+        if (deptosNoEncontrados.size > 0) {
+          var listaD = Array.from(deptosNoEncontrados).slice(0, 10).join(', ');
+          if (deptosNoEncontrados.size > 10) listaD += '… y ' + (deptosNoEncontrados.size - 10) + ' más';
+          advertencias.push('Departamentos del Excel no encontrados en el proyecto: ' + listaD + '.');
+        }
+        interfaz_mostrarModal(
+          'No se puede importar',
+          'El Excel no coincide con este proyecto:\n\n' + advertencias.join('\n') +
+            '\n\nVerifica que estés subiendo la planilla del proyecto correcto.',
+          null,
+          null
+        );
+        return;
+      }
+
+      // ── Paso 2: todo coincide → importar ────────────────────────────────────
+      var matricesNuevas = {};
+
+      for (var r2 = 8; r2 < data.length; r2++) {
+        var fila2 = data[r2];
+        if (!fila2) continue;
+        var rawCod2 = fila2[1];
+        if (rawCod2 === null || rawCod2 === undefined || rawCod2 === '') continue;
+        var actCode2 = parseInt(rawCod2);
+        if (isNaN(actCode2)) continue;
+
+        var faseKey = actACodigo[actCode2];
+        if (!faseKey) continue;
+
+        if (!matricesNuevas[faseKey]) matricesNuevas[faseKey] = {};
+
+        Object.keys(colADepto).forEach(function(ci) {
+          var col    = parseInt(ci);
+          var depCod = colADepto[ci];
+          var rawVal = fila2[col];
+          if (rawVal === null || rawVal === undefined) return;
+
+          var val = parseFloat(rawVal);
+          if (isNaN(val)) return;
+          if (val <= 1) val = Math.round(val * 100);
+          else          val = Math.round(val);
+
+          if ([0, 25, 50, 75, 100].includes(val)) {
+            matricesNuevas[faseKey][depCod + '_' + actCode2] = val;
+          }
+        });
+      }
+
+      datos_guardarMatrices(_mat_id, matricesNuevas);
+      _mat_datos = matricesNuevas;
+      window._coa_guardadoPendiente = true;
+      _mat_render();
+      interfaz_mostrarToast('Avances importados correctamente. Presiona Guardar para sincronizar con la nube.', 'exito', 5000);
+
+    } catch(err) {
+      console.error('Error importando Excel:', err);
+      interfaz_mostrarToast('Error al leer el archivo Excel. Verifica que sea la planilla tipo correcta.', 'error');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ── Exportar a planilla (escribe solo los valores de avance, sin rehacer el archivo) ──
+
+async function _mat_exportarPlanilla(file) {
+  await _mat_mostrarProgreso('Abriendo archivo…', 5);
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+
+    await _mat_mostrarProgreso('Leyendo estructura ZIP…', 15);
+    const zip = await zipLeer(arrayBuffer);
+
+    await _mat_mostrarProgreso('Localizando hoja…', 25);
+
+    // Encontrar el rId de la hoja "Tabla % Avance por Depto" en workbook.xml
+    const wbXml   = await zipLeerArchivo(zip, 'xl/workbook.xml');
+    const tagMatch = wbXml.match(/<sheet\b[^/]*name="Tabla % Avance por Depto"[^/]*/);
+    if (!tagMatch) {
+      _mat_ocultarProgreso();
+      interfaz_mostrarToast('No se encontró la hoja "Tabla % Avance por Depto" en el archivo.', 'error');
+      return;
+    }
+    const rIdMatch = tagMatch[0].match(/r:id="([^"]+)"/);
+    if (!rIdMatch) {
+      _mat_ocultarProgreso();
+      interfaz_mostrarToast('No se pudo leer el identificador de la hoja.', 'error');
+      return;
+    }
+    const rId = rIdMatch[1];
+
+    // Encontrar la ruta del XML de la hoja en el archivo rels
+    const relsXml  = await zipLeerArchivo(zip, 'xl/_rels/workbook.xml.rels');
+    const relMatch = relsXml.match(new RegExp('<Relationship\\b[^>]*\\bId="' + rId + '"[^>]*\\bTarget="([^"]+)"'));
+    if (!relMatch) {
+      _mat_ocultarProgreso();
+      interfaz_mostrarToast('No se pudo localizar la hoja en el archivo.', 'error');
+      return;
+    }
+    const target    = relMatch[1];
+    const sheetPath = target.startsWith('/') ? target.slice(1) : 'xl/' + target;
+
+    await _mat_mostrarProgreso('Procesando estructura…', 40);
+
+    // Leer el XML de la hoja
+    let sheetXml = await zipLeerArchivo(zip, sheetPath);
+
+    // Obtener estructura (col→depto, fila→actCode) con SheetJS
+    const wbParsed  = XLSX.read(arrayBuffer, { type: 'array' });
+    const ws        = wbParsed.Sheets['Tabla % Avance por Depto'];
+    const data      = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+
+    const filaPisos  = data[5] || [];
+    const filaDeptos = data[6] || [];
+    const deptoACol  = {};
+    let pisoActual = null, ultimoNum = 0;
+    for (let c = 11; c < filaPisos.length; c++) {
+      if (filaPisos[c] != null && filaPisos[c] !== '') { pisoActual = parseInt(filaPisos[c]); ultimoNum = 0; }
+      const nd = filaDeptos[c];
+      if (pisoActual !== null && nd != null && nd !== '') {
+        let np = parseInt(nd);
+        if (isNaN(np)) np = ultimoNum + 1;
+        ultimoNum = np;
+        const cod = String(pisoActual * 100 + np);
+        if (deptoACol[cod] === undefined) deptoACol[cod] = c;
+      }
+    }
+
+    const actAFila = {};
+    for (let r = 8; r < data.length; r++) {
+      const fila = data[r];
+      if (!fila) continue;
+      const raw = fila[1];
+      if (raw == null || raw === '') continue;
+      const code = parseInt(raw);
+      if (!isNaN(code)) actAFila[code] = r;
+    }
+
+    await _mat_mostrarProgreso('Actualizando celdas…', 60);
+
+    // Actualizar celdas en el XML
+    let actualizadas = 0;
+    for (const faseKey of Object.keys(_mat_datos)) {
+      const celdas = _mat_datos[faseKey] || {};
+      for (const key of Object.keys(celdas)) {
+        const und = key.indexOf('_');
+        if (und < 0) continue;
+        const deptCode = key.slice(0, und);
+        const actCode  = parseInt(key.slice(und + 1));
+
+        const colIdx = deptoACol[deptCode];
+        const rowIdx = actAFila[actCode];
+        if (colIdx === undefined || rowIdx === undefined) continue;
+
+        const cellRef = _mat_colToLetter(colIdx) + (rowIdx + 1);
+        const xlVal   = (celdas[key] || 0) / 100;
+
+        sheetXml = _mat_actualizarCelda(sheetXml, cellRef, xlVal);
+        actualizadas++;
+      }
+    }
+
+    await _mat_mostrarProgreso('Comprimiendo y empaquetando…', 80);
+
+    // Reempaquetar
+    const blob = await zipGuardarConCambios(zip, sheetPath, sheetXml);
+
+    await _mat_mostrarProgreso('Preparando descarga…', 95);
+
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = file.name;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    await _mat_mostrarProgreso('¡Completado!', 100);
+
+    // Convertir la burbuja en mensaje de éxito (sin toast aparte)
+    const elProg = document.getElementById('mat-progreso-exportar');
+    if (elProg) {
+      elProg.style.borderColor = 'var(--exito, #2e7d32)';
+      elProg.style.borderWidth = '2px';
+      const tit = document.getElementById('mat-progreso-titulo');
+      if (tit) { tit.textContent = '✓ Planilla actualizada'; tit.style.color = 'var(--exito, #2e7d32)'; }
+      const msg = document.getElementById('mat-progreso-msg');
+      if (msg) msg.textContent = actualizadas + ' celdas escritas correctamente.';
+      const bar = document.getElementById('mat-progreso-barra');
+      if (bar) bar.style.background = 'var(--exito, #2e7d32)';
+    }
+    await new Promise(r => setTimeout(r, 2500)); // mostrar éxito 2.5 segundos
+    _mat_ocultarProgreso();
+
+  } catch (err) {
+    console.error('Error exportando planilla:', err);
+    _mat_ocultarProgreso();
+    interfaz_mostrarToast('Error al actualizar la planilla. Verifica que sea la planilla tipo correcta.', 'error');
+  }
+}
+
+// Muestra o actualiza la burbuja de progreso flotante.
+// Devuelve una Promise que espera el próximo repintado del navegador,
+// garantizando que el usuario vea la actualización antes de continuar.
+function _mat_mostrarProgreso(mensaje, pct) {
+  let el = document.getElementById('mat-progreso-exportar');
+  if (!el) {
+    el = document.createElement('div');
+    el.id        = 'mat-progreso-exportar';
+    el.className = 'mat-progreso';
+    el.innerHTML =
+      '<div class="mat-progreso-titulo">Generando archivo</div>' +
+      '<div class="mat-progreso-msg"  id="mat-progreso-msg"></div>' +
+      '<div class="mat-progreso-fondo"><div class="mat-progreso-barra" id="mat-progreso-barra"></div></div>' +
+      '<div class="mat-progreso-pct"  id="mat-progreso-pct"></div>';
+    document.body.appendChild(el);
+  }
+  el.classList.remove('ocultando');
+  document.getElementById('mat-progreso-msg').textContent   = mensaje;
+  document.getElementById('mat-progreso-barra').style.width = pct + '%';
+  document.getElementById('mat-progreso-pct').textContent   = Math.round(pct) + '%';
+  // Forzar repintado y esperar 200ms para que cada paso sea claramente visible
+  return new Promise(r => requestAnimationFrame(() => setTimeout(r, 200)));
+}
+
+// Oculta y elimina la burbuja de progreso
+function _mat_ocultarProgreso() {
+  const el = document.getElementById('mat-progreso-exportar');
+  if (!el) return;
+  el.classList.add('ocultando');
+  setTimeout(() => { if (el.parentNode) el.parentNode.removeChild(el); }, 350);
+}
+
+// Convierte índice de columna (0-based) a letra(s) Excel: 0→A, 25→Z, 26→AA...
+function _mat_colToLetter(colIdx) {
+  let letter = '', col = colIdx + 1;
+  while (col > 0) {
+    const rem = (col - 1) % 26;
+    letter = String.fromCharCode(65 + rem) + letter;
+    col    = Math.floor((col - 1) / 26);
+  }
+  return letter;
+}
+
+// Actualiza el valor de una celda en el XML de la hoja.
+// Solo modifica el contenido de <v>; no toca formato, fórmulas ni ningún otro atributo.
+function _mat_actualizarCelda(xml, ref, valor) {
+  const r = ref.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // escapar para RegExp
+
+  // Caso 1: celda con valor — <c r="L9" ...><v>X</v></c>
+  // (puede haber <f>...</f> antes del <v> si tiene fórmula, se conserva)
+  const re1 = new RegExp('(<c r="' + r + '"[^>]*>)((?:<f>[^<]*<\\/f>)?)<v>[^<]*<\\/v>(<\\/c>)');
+  if (re1.test(xml)) {
+    return xml.replace(re1, (_, open, formula, close) =>
+      open.replace(/\s+t="[^"]*"/, '') + formula + '<v>' + valor + '</v>' + close
+    );
+  }
+
+  // Caso 2: celda vacía autocierre — <c r="L9" .../>
+  const re2 = new RegExp('(<c r="' + r + '"[^>]*)/>');
+  if (re2.test(xml)) {
+    return xml.replace(re2, (_, open) =>
+      open.replace(/\s+t="[^"]*"/, '') + '><v>' + valor + '</v></c>'
+    );
+  }
+
+  // Caso 3: celda vacía con cierre explícito — <c r="L9" ...></c>
+  const re3 = new RegExp('(<c r="' + r + '"[^>]*>)(<\\/c>)');
+  if (re3.test(xml)) {
+    return xml.replace(re3, (_, open, close) =>
+      open.replace(/\s+t="[^"]*"/, '') + '<v>' + valor + '</v>' + close
+    );
+  }
+
+  return xml; // celda no encontrada en el XML: no se modifica nada
 }
