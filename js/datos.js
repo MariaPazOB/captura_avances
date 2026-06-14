@@ -144,6 +144,7 @@ function datos_importarRespaldo(jsonTexto) {
   const id = obj.proyecto.id;
   datos_guardarProyecto(obj.proyecto);
   datos_guardarMatrices(id, obj.matrices || {});
+  datos_limpiarPendiente(id); // el respaldo cargado no tiene avances pendientes
   return id;
 }
 

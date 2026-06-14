@@ -1794,7 +1794,8 @@ function _mat_importarJSON(data) {
     function() {
       datos_guardarProyecto(config);
       datos_guardarMatrices(id, data.matrices);
-      datos_limpiarPendiente(id); // el respaldo cargado no tiene avances pendientes
+      datos_limpiarPendiente(id);          // el respaldo cargado no tiene avances pendientes
+      _mat_pendienteConsultado.add(id);    // no mostrar modal de "sesión anterior" al abrir
       interfaz_mostrarToast('Proyecto "' + config.nombre + '" cargado.', 'exito');
       router_ir('v-proyecto', { idProyecto: id, tab: 'tab-term' });
     }

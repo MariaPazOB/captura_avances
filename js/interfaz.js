@@ -72,14 +72,13 @@ document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('popstate', function() {
     if (_ignorarPopstates > 0) { _ignorarPopstates--; return; }
 
-    var vistaActual     = typeof router_getVistaActual    === 'function' ? router_getVistaActual()    : null;
-    var proyectoActivo  = typeof router_getProyectoActivo === 'function' ? router_getProyectoActivo() : null;
-
-    // Siempre re-empujamos para mantener el control del historial
-    history.pushState({ coa: 'app' }, '');
+    var vistaActual    = typeof router_getVistaActual    === 'function' ? router_getVistaActual()    : null;
+    var proyectoActivo = typeof router_getProyectoActivo === 'function' ? router_getProyectoActivo() : null;
 
     if (vistaActual === 'v-proyecto') {
-      // ── Dentro de un proyecto → volver al inicio ────────────────────────
+      // ── Dentro de un proyecto → volver al inicio ──────────────────────
+      // Re-empujamos para quedarnos en la app y manejar la navegación.
+      history.pushState({ coa: 'app' }, '');
       var hayPendienteProyecto = proyectoActivo &&
         typeof datos_hayPendiente === 'function' && datos_hayPendiente(proyectoActivo);
       if (hayPendienteProyecto) {
@@ -92,23 +91,23 @@ document.addEventListener('DOMContentLoaded', () => {
         router_ir('v-inicio');
       }
     } else {
-      // ── En el inicio → intentar cerrar la app ───────────────────────────
+      // ── En el inicio → verificar pendientes antes de salir ────────────
       var hayPendienteGlobal = window._coa_guardadoPendiente ||
         (typeof datos_proyectosConPendiente === 'function' && datos_proyectosConPendiente().length > 0);
       if (hayPendienteGlobal) {
+        // Hay pendientes: re-empujar para quedarnos, mostrar aviso
+        history.pushState({ coa: 'app' }, '');
         interfaz_mostrarModal(
           'Avances sin guardar',
           '¿Salir de la aplicación? Tienes avances sin guardar en este dispositivo.',
           function() {
+            // Usuario confirmó: deshacer el re-push y dejar que Android cierre
             _ignorarPopstates = 1;
-            history.back(); // deshace el re-push → el sistema cierra la app
+            history.back();
           }
         );
-      } else {
-        // Sin pendientes → salir directamente
-        _ignorarPopstates = 1;
-        history.back();
       }
+      // Sin pendientes: NO re-empujamos → Android cierra la app naturalmente
     }
   });
 
