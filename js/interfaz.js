@@ -67,28 +67,48 @@ document.addEventListener('DOMContentLoaded', () => {
   window._coa_guardadoPendiente = false; // inicializar
 
   // ── Interceptar botón "atrás" de Android en PWA ──────────────────────────
-  // Empujamos un estado al historial para que el primer "atrás" no cierre
-  // la app directamente. El listener popstate lo intercepta y muestra la
-  // alerta si hay cambios pendientes.
   history.pushState({ coa: 'app' }, '');
   var _ignorarPopstates = 0;
   window.addEventListener('popstate', function() {
     if (_ignorarPopstates > 0) { _ignorarPopstates--; return; }
-    var hayPendiente = window._coa_guardadoPendiente
-      || (typeof datos_proyectosConPendiente === 'function' && datos_proyectosConPendiente().length > 0);
-    // Siempre re-empujamos el estado para mantener el buffer
+
+    var vistaActual     = typeof router_getVistaActual    === 'function' ? router_getVistaActual()    : null;
+    var proyectoActivo  = typeof router_getProyectoActivo === 'function' ? router_getProyectoActivo() : null;
+
+    // Siempre re-empujamos para mantener el control del historial
     history.pushState({ coa: 'app' }, '');
-    if (hayPendiente) {
-      interfaz_mostrarModal(
-        'Avances sin guardar',
-        '¿Salir de la aplicación? Tienes avances sin guardar en este dispositivo.',
-        function() {
-          // Dos history.back() generan dos popstate — ignorar ambos
-          _ignorarPopstates = 2;
-          history.back(); // sale del estado re-pusheado
-          history.back(); // sale del buffer inicial
-        }
-      );
+
+    if (vistaActual === 'v-proyecto') {
+      // ── Dentro de un proyecto → volver al inicio ────────────────────────
+      var hayPendienteProyecto = proyectoActivo &&
+        typeof datos_hayPendiente === 'function' && datos_hayPendiente(proyectoActivo);
+      if (hayPendienteProyecto) {
+        interfaz_mostrarModal(
+          'Avances sin guardar',
+          '¿Salir sin guardar los avances?',
+          function() { router_ir('v-inicio'); }
+        );
+      } else {
+        router_ir('v-inicio');
+      }
+    } else {
+      // ── En el inicio → intentar cerrar la app ───────────────────────────
+      var hayPendienteGlobal = window._coa_guardadoPendiente ||
+        (typeof datos_proyectosConPendiente === 'function' && datos_proyectosConPendiente().length > 0);
+      if (hayPendienteGlobal) {
+        interfaz_mostrarModal(
+          'Avances sin guardar',
+          '¿Salir de la aplicación? Tienes avances sin guardar en este dispositivo.',
+          function() {
+            _ignorarPopstates = 1;
+            history.back(); // deshace el re-push → el sistema cierra la app
+          }
+        );
+      } else {
+        // Sin pendientes → salir directamente
+        _ignorarPopstates = 1;
+        history.back();
+      }
     }
   });
 
