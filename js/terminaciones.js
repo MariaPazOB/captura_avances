@@ -243,11 +243,13 @@ function _mat_sidebarEscritorioHTML() {
   const enFase          = _mat_tabActiva !== 'resumen' && _mat_tabActiva !== 'todas';
 
   return `
-    <button class="sidebar-toggle" id="sidebar-toggle" title="${_mat_sidebarColapsado ? 'Expandir' : 'Colapsar'}">${_mat_sidebarColapsado ? '▶' : '◀'}</button>
+    <div class="sidebar-top-bar">
+      <button class="sidebar-toggle" id="sidebar-toggle" title="${_mat_sidebarColapsado ? 'Expandir' : 'Colapsar'}">${_mat_sidebarColapsado ? '▶' : '◀'}</button>
+    </div>
 
     <div id="sidebar-fecha-slot" class="sidebar-fecha-slot"></div>
 
-    <button class="btn-primario btn-sm sidebar-guardar${hayPendiente ? ' mat-btn-pendiente' : ''}" id="mat-btn-guardar-avances">
+    <button class="sidebar-guardar${hayPendiente ? ' mat-btn-pendiente' : ''}" id="mat-btn-guardar-avances">
       <span class="sidebar-icono">✓</span><span class="sidebar-texto"> Guardar avances</span>
     </button>
 
@@ -257,7 +259,7 @@ function _mat_sidebarEscritorioHTML() {
       <button class="sidebar-tab${_mat_tabActiva === 'resumen' ? ' activo' : ''}" data-tab="resumen">
         <span class="sidebar-icono">📊</span><span class="sidebar-texto">Resumen</span>
       </button>
-      <button class="btn-secundario btn-sm sidebar-btn-filtro" id="mat-btn-filtro-piso">
+      <button class="sidebar-btn-filtro" id="mat-btn-filtro-piso">
         <span class="sidebar-icono">🏢</span><span class="sidebar-texto">${pisoLabel}</span>
         ${_mat_pisoFiltro !== 'todos' ? '<span class="piso-filtro-x" id="mat-btn-limpiar-piso" title="Quitar filtro de piso">✕</span>' : ''}
       </button>
@@ -267,31 +269,8 @@ function _mat_sidebarEscritorioHTML() {
         <span class="sidebar-icono">⊞</span><span class="sidebar-texto">Todas las fases</span>
       </button>
     </nav>
-
-    <div class="sidebar-spacer"></div>
-
-    <div class="sidebar-acciones-wrap">
-      <button class="sidebar-btn-accion sidebar-btn-acciones-toggle" id="mat-btn-acciones-toggle">
-        <span class="sidebar-icono">⚙</span><span class="sidebar-texto">Acciones ▾</span>
-      </button>
-      <div class="sidebar-acciones-dropdown" id="sidebar-acciones-dropdown" style="display:none">
-        <button class="sidebar-btn-accion-item" id="mat-btn-excel">
-          <span class="sidebar-icono">⬇</span><span class="sidebar-texto">Exportar Excel</span>
-        </button>
-        <button class="sidebar-btn-accion-item" id="mat-btn-importar-excel">
-          <span class="sidebar-icono">⬆</span><span class="sidebar-texto">Importar Excel</span>
-        </button>
-        <button class="sidebar-btn-accion-item" id="mat-btn-cargar">
-          <span class="sidebar-icono">📂</span><span class="sidebar-texto">Cargar respaldo JSON</span>
-        </button>
-        <button class="sidebar-btn-accion-item sidebar-btn-peligro" id="mat-btn-resetear">
-          <span class="sidebar-icono">↺</span><span class="sidebar-texto">Resetear avances</span>
-        </button>
-      </div>
-      <input type="file" id="mat-input-cargar"          accept=".json" style="display:none">
-      <input type="file" id="mat-input-excel-import"   accept=".xlsx" style="display:none">
-      <input type="file" id="mat-input-planilla-export" accept=".xlsx" style="display:none">
-    </div>`;
+    <!-- Botón oculto — lo usa el dropdown ☰ del navbar para resetear avances -->
+    <button id="mat-btn-resetear" style="display:none" aria-hidden="true"></button>`;
 }
 
 // ── Toolbar móvil — fila única ───────────────────────────────────────────────
@@ -649,9 +628,9 @@ function _term_aplicarStickyH() {
     const stickyMap = []; // [{i, left}]
 
     // Colores resueltos a hex para evitar problemas con var() en estilo inline.
-    const HEX_FONDO_ALT  = '#f0f1f3';
-    const HEX_FONDO_CARD = '#ffffff';
-    const HEX_BORDE      = '#d0d3d8'; // var(--borde-suave) aproximado
+    const HEX_FONDO_ALT  = '#F0EDE6'; // --surface2 RVC
+    const HEX_FONDO_CARD = '#ffffff';  // --surface
+    const HEX_BORDE      = '#E2DDD4'; // --border RVC
 
     ths.forEach((th, i) => {
       // Forzar sticky vertical en TODOS los TH del encabezado de columnas.

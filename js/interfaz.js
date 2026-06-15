@@ -165,8 +165,10 @@ function _interfaz_inicializarNombreUsuario() {
 
 function _interfaz_actualizarNombreEnNavbar(nombre) {
   const display = nombre || 'Sin nombre';
-  document.querySelectorAll('.navbar-usuario-nombre').forEach(el => {
-    el.textContent = display;
+  const inicial = display.trim().charAt(0).toUpperCase() || '?';
+  // Avatar: muestra solo la inicial
+  document.querySelectorAll('.navbar-usuario').forEach(btn => {
+    btn.textContent = inicial;
   });
 }
 
@@ -220,6 +222,7 @@ function interfaz_cerrarModal() {
 
 function _interfaz_registrarModal() {
   document.getElementById('modal-cancelar')?.addEventListener('click', interfaz_cerrarModal);
+  document.getElementById('modal-cerrar-btn')?.addEventListener('click', interfaz_cerrarModal);
   document.getElementById('modal-overlay')?.addEventListener('click', e => {
     if (e.target.id === 'modal-overlay') interfaz_cerrarModal();
   });
