@@ -1447,7 +1447,11 @@ function _mat_registrarEventos() {
         // Quitar estilo pendiente del botón
         const btn = document.getElementById('mat-btn-guardar-avances');
         if (btn) btn.classList.remove('mat-btn-pendiente');
-        interfaz_mostrarToast('Avances guardados correctamente', 'exito');
+        if (navigator.onLine) {
+          interfaz_mostrarToast('Avances guardados correctamente', 'exito');
+        } else {
+          interfaz_mostrarToast('Avances guardados en este dispositivo. Se sincronizarán cuando vuelva la conexión.', 'aviso', 5000);
+        }
       }
     );
   });
