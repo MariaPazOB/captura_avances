@@ -359,6 +359,8 @@ function _mat_renderContenido() {
   _mat_registrarEventosCeldas();
   _term_aplicarStickyH();
   if (_mat_colsOcultas) _mat_aplicarToggleCols();
+  // Sincronizar sidebar siempre, sin importar qué disparó el re-render
+  _mat_actualizarPctSidebar();
 }
 
 // ── Tabla Resumen ────────────────────────────────────────────────────────────
