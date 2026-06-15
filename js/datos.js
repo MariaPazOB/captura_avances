@@ -236,7 +236,7 @@ function _fs_setEstado(estado) {
   const labels = {
     ok:            'Sincronizado',
     sincronizando: 'Sincronizando…',
-    error:         'Error de sync',
+    error:         'Error',
     offline:       'Sin conexión',
   };
   const texto = labels[estado] || '';
@@ -399,3 +399,20 @@ function _fs_notificarCambioExterno(idsActualizados) {
   }
 }
 
+// ── Detección de red en tiempo real ─────────────────────────────────────────
+// Escucha los eventos nativos del navegador para reflejar el estado de
+// conexión en cualquier momento, no solo al iniciar la app.
+
+window.addEventListener('offline', function() {
+  _fs_setEstado('offline');
+});
+
+window.addEventListener('online', function() {
+  // Al recuperar la red, re-intentar subir todos los proyectos locales
+  // por si hubo cambios mientras no había conexión.
+  if (!_db) return;
+  _fs_setEstado('sincronizando');
+  datos_listarProyectos().forEach(function(p) {
+    _fs_subirProyecto(p.id);
+  });
+});
