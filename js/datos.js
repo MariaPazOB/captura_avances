@@ -100,7 +100,7 @@ function datos_subirAhora(idProyecto) {
   localStorage.removeItem(_PRE + 'pendiente_ts_' + idProyecto);
   // Si no hay internet, marcar offline y no intentar Firebase.
   // El listener 'online' subirá automáticamente cuando vuelva la red.
-  if (!navigator.onLine) {
+  if (!datos_estaOnline()) {
     _fs_setEstado('offline');
     return;
   }
@@ -282,12 +282,12 @@ function _fs_subirProyecto(id) {
   _db.collection(_FS_COL).doc(id).set(doc)
     .then(function() {
       // Firebase resuelve su caché local aunque no haya internet,
-      // así que verificamos navigator.onLine antes de mostrar "Sincronizado".
-      _fs_setEstado(navigator.onLine ? 'ok' : 'offline');
+      // así que verificamos datos_estaOnline() antes de mostrar "Sincronizado".
+      _fs_setEstado(datos_estaOnline() ? 'ok' : 'offline');
     })
     .catch(function(err) {
       console.warn('[COA] Error al subir proyecto a Firestore:', err.message);
-      _fs_setEstado(navigator.onLine ? 'error' : 'offline');
+      _fs_setEstado(datos_estaOnline() ? 'error' : 'offline');
     });
 }
 
@@ -376,7 +376,7 @@ function datos_iniciarListenerFirestore() {
       });
     }
 
-    _fs_setEstado(navigator.onLine ? 'ok' : 'offline');
+    _fs_setEstado(datos_estaOnline() ? 'ok' : 'offline');
 
     // Solo notificar si hubo cambios externos y alguno afecta la vista actual
     if (idsActualizados.size > 0) {
@@ -384,7 +384,7 @@ function datos_iniciarListenerFirestore() {
     }
 
   }, function(err) {
-    _fs_setEstado(navigator.onLine ? 'error' : 'offline');
+    _fs_setEstado(datos_estaOnline() ? 'error' : 'offline');
     console.warn('[COA] Error en listener Firestore:', err.message);
   });
 }
@@ -408,14 +408,22 @@ function _fs_notificarCambioExterno(idsActualizados) {
 }
 
 // ── Detección de red en tiempo real ─────────────────────────────────────────
-// Escucha los eventos nativos del navegador para reflejar el estado de
-// conexión en cualquier momento, no solo al iniciar la app.
+// Usamos nuestra propia variable en vez de navigator.onLine directamente,
+// porque navigator.onLine no es confiable en todos los dispositivos (ej. iOS).
+
+let _coa_estaOnline = navigator.onLine;
+
+function datos_estaOnline() {
+  return _coa_estaOnline;
+}
 
 window.addEventListener('offline', function() {
+  _coa_estaOnline = false;
   _fs_setEstado('offline');
 });
 
 window.addEventListener('online', function() {
+  _coa_estaOnline = true;
   // Al recuperar la red, re-intentar subir todos los proyectos locales
   // por si hubo cambios mientras no había conexión.
   if (!_db) return;

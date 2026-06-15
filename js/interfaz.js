@@ -48,7 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
         window._coa_guardadoPendiente = false;
         const btnToolbar = document.getElementById('mat-btn-guardar-avances');
         if (btnToolbar) btnToolbar.classList.remove('mat-btn-pendiente');
-        if (navigator.onLine) {
+        if (datos_estaOnline()) {
           interfaz_mostrarToast('Avances guardados correctamente', 'exito');
         } else {
           interfaz_mostrarToast('Avances guardados en este dispositivo. Se sincronizarán cuando vuelva la conexión.', 'aviso', 5000);
