@@ -376,7 +376,7 @@ function datos_iniciarListenerFirestore() {
       });
     }
 
-    _fs_setEstado('ok');
+    _fs_setEstado(navigator.onLine ? 'ok' : 'offline');
 
     // Solo notificar si hubo cambios externos y alguno afecta la vista actual
     if (idsActualizados.size > 0) {
@@ -384,7 +384,7 @@ function datos_iniciarListenerFirestore() {
     }
 
   }, function(err) {
-    _fs_setEstado('error');
+    _fs_setEstado(navigator.onLine ? 'error' : 'offline');
     console.warn('[COA] Error en listener Firestore:', err.message);
   });
 }
