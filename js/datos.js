@@ -96,10 +96,16 @@ function datos_proyectosConPendiente() {
 function datos_subirAhora(idProyecto) {
   // Guardar snapshot del estado oficial antes de subir
   datos_guardarMatricesOk(idProyecto);
-  _fs_setEstado('sincronizando');
-  _fs_subirProyecto(idProyecto);
   datos_limpiarPendiente(idProyecto);
   localStorage.removeItem(_PRE + 'pendiente_ts_' + idProyecto);
+  // Si no hay internet, marcar offline y no intentar Firebase.
+  // El listener 'online' subirá automáticamente cuando vuelva la red.
+  if (!navigator.onLine) {
+    _fs_setEstado('offline');
+    return;
+  }
+  _fs_setEstado('sincronizando');
+  _fs_subirProyecto(idProyecto);
 }
 
 // ── Matrices de terminaciones (estado actual) ────────────────────────────────
@@ -275,11 +281,13 @@ function _fs_subirProyecto(id) {
 
   _db.collection(_FS_COL).doc(id).set(doc)
     .then(function() {
-      _fs_setEstado('ok');
+      // Firebase resuelve su caché local aunque no haya internet,
+      // así que verificamos navigator.onLine antes de mostrar "Sincronizado".
+      _fs_setEstado(navigator.onLine ? 'ok' : 'offline');
     })
     .catch(function(err) {
       console.warn('[COA] Error al subir proyecto a Firestore:', err.message);
-      _fs_setEstado('error');
+      _fs_setEstado(navigator.onLine ? 'error' : 'offline');
     });
 }
 
