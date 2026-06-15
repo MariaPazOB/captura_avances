@@ -1143,18 +1143,33 @@ button { font-family: inherit; cursor: pointer; border: none; outline: none; }
 
 /* ── Toast ────────────────────────────────────────────────── */
 .toast {
-  position: fixed; bottom: 1.25rem; right: 1.25rem; z-index: 9999;
-  padding: .7rem 1.2rem; border-radius: var(--radio-sm);
-  font-size: .85rem; font-weight: 600; color: #fff;
-  opacity: 0; pointer-events: none;
-  transform: translateY(8px);
-  transition: opacity .2s, transform .2s;
-  max-width: 320px;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(.95);
+  z-index: 9999;
+  padding: 1rem 1.5rem;
+  border-radius: var(--radio);
+  font-size: .95rem;
+  font-weight: 500;
+  color: var(--texto);
+  background: #fff;
+  box-shadow: 0 8px 32px rgba(0,0,0,.18), 0 2px 8px rgba(0,0,0,.08);
+  border: 2px solid transparent;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .25s, transform .25s;
+  max-width: 420px;
+  min-width: 260px;
+  width: calc(100% - 3rem);
+  line-height: 1.5;
+  text-align: center;
 }
-.toast.activo     { opacity: 1; transform: translateY(0); pointer-events: auto; }
-.toast-exito      { background: var(--exito); }
-.toast-error      { background: var(--peligro); }
-.toast-aviso      { background: var(--advertencia); }
+.toast.activo  { opacity: 1; transform: translate(-50%, -50%) scale(1); pointer-events: auto; }
+.toast-exito   { border-color: var(--exito); }
+.toast-error   { border-color: var(--peligro); }
+.toast-aviso   { border-color: var(--advertencia); }
+.toast-info    { border-color: #60a5fa; }
 
 /* ── Burbuja de progreso (exportar planilla) ──────────────── */
 .mat-progreso {

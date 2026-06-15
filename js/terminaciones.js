@@ -1863,8 +1863,6 @@ function _mat_exportarJSON() {
   a.download   = 'coa_' + nombre + '_' + fecha + '.json';
   a.click();
   URL.revokeObjectURL(url);
-  interfaz_mostrarToast('Respaldo guardado correctamente.', 'exito');
-  window._coa_guardadoPendiente = false;
 }
 
 // ── Importar JSON ─────────────────────────────────────────────────────────────
